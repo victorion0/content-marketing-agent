@@ -18,9 +18,9 @@ app.get('/', (req, res) => {
     <h1>30-Day Autonomous Content Marketing Agent</h1>
     <h2>Powered by Google Gemini 1.5 Flash</h2>
     <p>POST to /api/start → { "keyword": "your niche" }</p>
-    <p>Robot go run 30 days content by itself. No touch again!</p>
+    <p>Robot will run 30 days content by itself. Dont touch again!</p>
     <hr>
-    <p>Made with love by you & Senior Bro Grok</p>
+    <p>Made with love by Victor Osaikhuiwuomwan</p>
   `);
 });
 
