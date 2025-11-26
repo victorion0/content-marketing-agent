@@ -1,36 +1,20 @@
-// queue.js - BULLETPROOF FOR LEAPCELL
+// queue.js - FINAL WORKING (uses local Redis or cloud Redis)
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import { createClient } from 'redis';
 import dotenv from 'dotenv';
 dotenv.config();
 
-let connection;
+// Always create a Redis client — local or cloud
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-if (process.env.REDIS_URL) {
-  try {
-    connection = new IORedis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-      lazyConnect: true,
-      retryDelayOnFailover: 100,
-      enableAutoPipelining: true
-    });
-    // Test connection quick
-    connection.ping().then(() => {
-      console.log("PRODUCTION MODE: Redis connected successfully! 🟢");
-    }).catch(() => {
-      console.log("PRODUCTION MODE: Redis connect failed — check URL. Using fallback. 🔴");
-      connection = { host: 'localhost', port: 6379 };  // Fallback
-    });
-  } catch (error) {
-    console.error('Redis init error:', error);
-    connection = { host: 'localhost', port: 6379 };
-  }
-} else {
-  connection = { host: 'localhost', port: 6379 };
-  console.log("LOCAL MODE: In-memory queue (no Redis needed)");
-}
+const redisClient = createClient({ url: redisUrl });
+await redisClient.connect();
 
-export const contentQueue = new Queue('content marketing queue', { connection });
+console.log(process.env.REDIS_URL 
+  ? 'PRODUCTION: Connected to LeapCell Redis' 
+  : 'LOCAL: Connected to local Redis (in-memory)'
+);
 
-console.log("BullMQ + Redis connected perfectly — Robot brain 100% ready!");
+export const contentQueue = new Queue('content marketing queue', {
+  connection: redisClient
+});
