@@ -43,24 +43,19 @@ app.get('/api', (req, res) => {
   res.json({ message: "API is ALIVE" });
 });
 
-// SERVE REACT DASHBOARD — THIS WORKS ON LEAPCELL 100%
+// SERVE REACT DASHBOARD — THIS IS THE ONLY WAY THAT WORKS ON LEAPCELL
 const clientPath = path.join(__dirname, 'client/dist');
 app.use(express.static(clientPath));
 
-// Root route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(clientPath, 'index.html'));
-});
-
-// Catch-all for React Router — NO MORE * BUG
-app.get('*', (req, res) => {
+// ONLY SERVE index.html on root and ALL other routes — NO app.get('*') EVER
+app.use((req, res) => {
   res.sendFile(path.join(clientPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('\n30-DAY CONTENT ROBOT SAAS IS LIVE!');
+  console.log('\n30-DAY CONTENT ROBOT SAAS IS LIVE AND UNKILLABLE!');
   console.log(`Dashboard → http://localhost:${PORT}`);
   console.log(`API → POST /api/start`);
-  console.log(`Bree robot running...\n`);
+  console.log(`No more * route = No more crash\n`);
 });
