@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import Bree from 'bree';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Worker } from 'node:worker_threads';
+import { generateContent } from './utils/gemini.js';
 
 dotenv.config();
 
@@ -14,48 +15,39 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// BREE — ROBOT QUEUE
-const bree = new Bree({
-  root: path.join(__dirname, 'jobs'),
-  defaultExtension: 'js'
-});
-bree.start();
-
-// API
+// API — START ROBOT (direct worker thread)
 app.post('/api/start', async (req, res) => {
   const { keyword } = req.body;
-  if (!keyword?.trim()) return res.status(400).json({ error: "Keyword needed!" });
+  if (!keyword?.trim()) return res.status(400).json({ error: "Send keyword!" });
 
-  const jobName = `robot-${Date.now()}`;
-  await bree.add({
-    name: jobName,
-    path: path.join(__dirname, 'jobs/contentJob.js'),
-    worker: { workerData: { keyword: keyword.trim() } }
+  const cleanKeyword = keyword.trim();
+
+  // Launch robot in background
+  const worker = new Worker(new URL('./workers/robotWorker.js', import.meta.url), {
+    workerData: { keyword: cleanKeyword }
   });
 
-  res.json({ 
-    success: true, 
-    message: `30-Day Robot STARTED for "${keyword.trim()}"!` 
+  worker.on('error', (err) => console.error('Robot error:', err));
+  worker.on('exit', (code) => {
+    if (code !== 0) console.error(`Robot stopped with code ${code}`);
+  });
+
+  res.json({
+    success: true,
+    message: `30-Day Robot STARTED for "${cleanKeyword}"! Check logs → it's cooking now!`
   });
 });
 
-app.get('/api', (req, res) => {
-  res.json({ message: "API is ALIVE" });
-});
-
-// SERVE REACT DASHBOARD — THIS IS THE ONLY WAY THAT WORKS ON LEAPCELL
+// SERVE REACT DASHBOARD
 const clientPath = path.join(__dirname, 'client/dist');
 app.use(express.static(clientPath));
-
-// ONLY SERVE index.html on root and ALL other routes — NO app.get('*') EVER
-app.use((req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(clientPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('\n30-DAY CONTENT ROBOT SAAS IS LIVE AND UNKILLABLE!');
+  console.log('\n30-DAY CONTENT ROBOT IS LIVE — NO QUEUE, NO CRASH, PURE POWER!');
   console.log(`Dashboard → http://localhost:${PORT}`);
-  console.log(`API → POST /api/start`);
-  console.log(`No more * route = No more crash\n`);
+  console.log(`POST /api/start → launch robot\n`);
 });
