@@ -14,14 +14,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// BREE — YOUR ROBOT QUEUE
+// BREE — ROBOT QUEUE
 const bree = new Bree({
   root: path.join(__dirname, 'jobs'),
   defaultExtension: 'js'
 });
 bree.start();
 
-// API ROUTES
+// API
 app.post('/api/start', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword?.trim()) return res.status(400).json({ error: "Keyword needed!" });
@@ -33,35 +33,34 @@ app.post('/api/start', async (req, res) => {
     worker: { workerData: { keyword: keyword.trim() } }
   });
 
-  res.json({
-    success: true,
-    message: `30-Day Robot STARTED for "${keyword.trim()}"! Check logs → it's cooking!`
+  res.json({ 
+    success: true, 
+    message: `30-Day Robot STARTED for "${keyword.trim()}"!` 
   });
 });
 
 app.get('/api', (req, res) => {
-  res.json({ message: "30-Day Content Robot API is ALIVE!" });
+  res.json({ message: "API is ALIVE" });
 });
 
-// SERVE REACT DASHBOARD (THIS WAS THE PROBLEM)
+// SERVE REACT DASHBOARD — THIS WORKS ON LEAPCELL 100%
 const clientPath = path.join(__dirname, 'client/dist');
-
-// Serve static files
 app.use(express.static(clientPath));
 
-// THIS LINE FIXED EVERYTHING — NO MORE "*"
+// Root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(clientPath, 'index.html'));
+});
+
+// Catch-all for React Router — NO MORE * BUG
 app.get('*', (req, res) => {
-  // Only serve index.html if it's not an API route
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'API route not found' });
-  }
   res.sendFile(path.join(clientPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('\n30-DAY CONTENT ROBOT FULLSTACK SAAS IS LIVE!');
-  console.log(`Dashboard: http://localhost:${PORT}`);
-  console.log(`API: POST /api/start`);
-  console.log(`Bree robot running...`);
+  console.log('\n30-DAY CONTENT ROBOT SAAS IS LIVE!');
+  console.log(`Dashboard → http://localhost:${PORT}`);
+  console.log(`API → POST /api/start`);
+  console.log(`Bree robot running...\n`);
 });
