@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Rocket, Loader2, CheckCircle, Clock, Download, ExternalLink } from 'lucide-react'
+import { Rocket, Loader2, CheckCircle, Clock, Download } from 'lucide-react'
 
-const API_URL = import.meta.env.VITE_API_URL || "https://content-marketing-agent-victorion014-qngt7soh.leapcell.dev"
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'https://content-marketing-agent-victorion014-qngt7soh.leapcell.dev'
 
 function App() {
-  const [keyword, setKeyword] = useState("")
+  const [keyword, setKeyword] = useState('')
   const [loading, setLoading] = useState(false)
   const [history, setHistory] = useState([])
   const [selected, setSelected] = useState(null)
-  const [launchSuccess, setLaunchSuccess] = useState("")
+  const [launchSuccess, setLaunchSuccess] = useState('')
 
   // Load history on mount
   useEffect(() => {
@@ -19,23 +21,26 @@ function App() {
   const fetchHistory = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/history`)
-      setHistory(res.data)
+      setHistory(Array.isArray(res.data) ? res.data : [])
     } catch (e) {
-      console.log("History load failed")
+      console.log('History load failed', e)
+      setHistory([])
     }
   }
 
   const startRobot = async () => {
-    if (!keyword.trim()) return alert("Enter keyword o!")
+    if (!keyword.trim()) return alert('Enter keyword o!')
     setLoading(true)
-    setLaunchSuccess("")
+    setLaunchSuccess('')
     try {
-      const res = await axios.post(`${API_URL}/api/start`, { keyword: keyword.trim() })
-      setLaunchSuccess(res.data.message)
-      setKeyword("")
-      setTimeout(fetchHistory, 2000) // refresh history
+      const res = await axios.post(`${API_URL}/api/start`, {
+        keyword: keyword.trim(),
+      })
+      setLaunchSuccess(res.data?.message || 'Robot launched')
+      setKeyword('')
+      setTimeout(fetchHistory, 2000)
     } catch (err) {
-      alert("Error launching robot — check console")
+      alert('Error launching robot — check console')
     } finally {
       setLoading(false)
     }
@@ -43,12 +48,24 @@ function App() {
 
   const downloadPDF = () => {
     if (!selected) return
-    // Simple PDF — we go upgrade later
-    const content = selected.content.map(d => 
-      `DAY ${d.day}\n${d.title}\n\n${d.meta_description}\n\nTwitter Thread:\n${d.twitter_thread}\n\n---\n`
-    ).join("\n")
 
-    const blob = new Blob([`30-DAY CONTENT PLAN: ${selected.keyword}\n\n${content}`], { type: 'text/plain' })
+    if (!Array.isArray(selected.content)) {
+      alert('Content not ready yet. Please try again later.')
+      return
+    }
+
+    const content = selected.content
+      .map(
+        (d) =>
+          `DAY ${d.day}\n${d.title}\n\n${d.meta_description}\n\nTwitter Thread:\n${d.twitter_thread}\n\n---\n`
+      )
+      .join('\n')
+
+    const blob = new Blob(
+      [`30-DAY CONTENT PLAN: ${selected.keyword}\n\n${content}`],
+      { type: 'text/plain' }
+    )
+
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -65,7 +82,9 @@ function App() {
             <Rocket className="w-16 h-16 text-yellow-400" />
             30-Day Content Robot
           </h1>
-          <p className="text-2xl opacity-90">One keyword. 30 days of fire content. Zero stress.</p>
+          <p className="text-2xl opacity-90">
+            One keyword. 30 days of fire content. Zero stress.
+          </p>
         </div>
 
         {/* LAUNCH SECTION */}
@@ -82,10 +101,12 @@ function App() {
           <button
             onClick={startRobot}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-bold py-6 px-8 rounded-2xl text-2xl text-2xl flex items-center justify-center gap-4 transition transform hover:scale-105"
+            className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-bold py-6 px-8 rounded-2xl text-2xl flex items-center justify-center gap-4 transition transform hover:scale-105"
           >
             {loading ? (
-              <>Launching Robot <Loader2 className="animate-spin w-8 h-8" /></>
+              <>
+                Launching Robot <Loader2 className="animate-spin w-8 h-8" />
+              </>
             ) : (
               <>START 30-DAY ROBOT</>
             )}
@@ -100,32 +121,63 @@ function App() {
         </div>
 
         {/* HISTORY SECTION */}
-        <h2 className="text-4xl font-bold mb-8 text-center">Your Content Calendars</h2>
+        <h2 className="text-4xl font-bold mb-8 text-center">
+          Your Content Calendars
+        </h2>
+
         {history.length === 0 ? (
-          <p className="text-center text-xl opacity-70">No calendars yet. Launch your first robot!</p>
+          <p className="text-center text-xl opacity-70">
+            No calendars yet. Launch your first robot!
+          </p>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {history.map((cal) => (
-              <div key={cal.id} className="bg-white/10 backdrop-blur rounded-2xl p-6 hover:bg-white/20 transition">
-                <h3 className="text-xl font-bold mb-2 truncate">{cal.keyword}</h3>
+              <div
+                key={cal.id}
+                className="bg-white/10 backdrop-blur rounded-2xl p-6 hover:bg-white/20 transition"
+              >
+                <h3 className="text-xl font-bold mb-2 truncate">
+                  {cal.keyword}
+                </h3>
+
                 <p className="text-sm opacity-80 mb-4">
-                  <Clock className="inline w-4 h-4" /> {new Date(cal.created_at).toLocaleString()}</p>
+                  <Clock className="inline w-4 h-4" />{' '}
+                  {new Date(cal.created_at).toLocaleString()}
+                </p>
+
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setSelected(cal)}
+                    onClick={() =>
+                      setSelected({
+                        ...cal,
+                        content: Array.isArray(cal.content)
+                          ? cal.content
+                          : [],
+                      })
+                    }
                     className="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded-lg"
                   >
                     View 30 Days
                   </button>
-                  {cal.status === 'completed' && (
-                    <button onClick={downloadPDF} className="px-4 bg-green-600 hover:bg-green-700 rounded-lg">
-                      <Download className="w-5 h-5" />
-                    </button>
-                  )}
+
+                  {cal.status === 'completed' &&
+                    Array.isArray(cal.content) && (
+                      <button
+                        onClick={downloadPDF}
+                        className="px-4 bg-green-600 hover:bg-green-700 rounded-lg"
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
+                    )}
                 </div>
-                <span className={`mt-3 inline-block px-3 py-1 rounded-full text-sm ${
-                  cal.status === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
-                }`}>
+
+                <span
+                  className={`mt-3 inline-block px-3 py-1 rounded-full text-sm ${
+                    cal.status === 'completed'
+                      ? 'bg-green-600'
+                      : 'bg-yellow-600'
+                  }`}
+                >
                   {cal.status === 'completed' ? 'Ready' : 'Cooking...'}
                 </span>
               </div>
@@ -134,7 +186,7 @@ function App() {
         )}
 
         <p className="text-center mt-20 text-sm opacity-60">
-          Built by Victor Osaikhuiwuomwan• Live since 2025
+          Built by Victor Osaikhuiwuomwan • Live since 2025
         </p>
       </div>
     </div>
